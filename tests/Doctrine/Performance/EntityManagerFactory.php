@@ -27,8 +27,7 @@ final class EntityManagerFactory
             [
                 'driverClass' => Driver::class,
                 'memory'      => true,
-            ],
-            $config
+            ], $config
         );
 
         (new SchemaTool($entityManager))

@@ -275,4 +275,12 @@ abstract class EntityManagerDecorator extends ObjectManagerDecorator implements 
     {
         return $this->wrapped->getCache();
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getShardManager()
+    {
+        return $this->wrapped->getShardManager();
+    }
 }

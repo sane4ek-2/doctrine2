@@ -24,9 +24,12 @@ use Doctrine\Common\Collections\Expr\Comparison;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\LockMode;
+use Doctrine\DBAL\Sharding\ShardHolder;
+use Doctrine\DBAL\Sharding\ShardManager;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\HolderShardEntityInterface;
 use Doctrine\ORM\Mapping\MappingException;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMException;
@@ -1830,7 +1833,26 @@ class BasicEntityPersister implements EntityPersister
         $sql                  = $this->getSelectSQL($criteria, $assoc, null, $limit, $offset);
         list($params, $types) = $this->expandToManyParameters($parameters);
 
-        return $this->conn->executeQuery($sql, $params, $types);
+        if ($this->em->getShardManager() instanceof ShardManager) {
+            $oldShardId = $this->em->getShardManager()->getCurrentDistributionValue();
+            if (isset($assoc['shardHolder'])) {
+                $method = "get{$assoc['shardHolder']}";
+                if (!is_callable([$sourceEntity, $method])) {
+                    throw new MappingException("The entity " . get_class($sourceEntity) . " doesn't have getter " . $method . " for taking shard holder");
+                }
+                $shardHolder = call_user_func([$sourceEntity, $method]);
+                if (!$shardHolder instanceof ShardHolder) {
+                    throw new MappingException(get_class($shardHolder) . " must implement an interface " . ShardHolder::class);
+                }
+                $this->em->getShardManager()->selectShard($shardHolder->getShardId());
+            }
+            $stmt = $this->conn->executeQuery($sql, $params, $types);
+            $this->em->getShardManager()->selectShard($oldShardId);
+        } else {
+            $stmt = $this->conn->executeQuery($sql, $params, $types);
+        }
+
+        return $stmt;
     }
 
     /**

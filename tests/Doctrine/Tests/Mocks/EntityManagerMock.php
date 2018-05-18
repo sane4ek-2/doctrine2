@@ -66,7 +66,12 @@ class EntityManagerMock extends EntityManager
      *
      * {@inheritdoc}
      */
-    public static function create($conn, Configuration $config = null, EventManager $eventManager = null)
+    public static function create(
+        $conn,
+        Configuration $config = null,
+        EventManager $eventManager = null,
+        ShardManager $shardManager = null
+    )
     {
         if (null === $config) {
             $config = new Configuration();
@@ -78,6 +83,6 @@ class EntityManagerMock extends EntityManager
             $eventManager = new EventManager();
         }
 
-        return new EntityManagerMock($conn, $config, $eventManager);
+        return new EntityManagerMock($conn, $config, $eventManager, $shardManager);
     }
 }

@@ -371,6 +371,11 @@ class AnnotationDriver extends AbstractAnnotationDriver
                 $mapping['orphanRemoval'] = $oneToManyAnnot->orphanRemoval;
                 $mapping['fetch'] = $this->getFetchMode($className, $oneToManyAnnot->fetch);
 
+                /** @var Mapping\Sharding $shardAnnot */
+                if($shardAnnot = $this->reader->getPropertyAnnotation($property, Mapping\Sharding::class)){
+                    $mapping['shardHolder'] = $shardAnnot->shardHolder;
+                }
+
                 if ($orderByAnnot = $this->reader->getPropertyAnnotation($property, Mapping\OrderBy::class)) {
                     $mapping['orderBy'] = $orderByAnnot->value;
                 }

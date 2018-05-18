@@ -20,6 +20,7 @@
 namespace Doctrine\ORM;
 
 use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\DBAL\Sharding\ShardManager;
 use Doctrine\ORM\Query\ResultSetMapping;
 
 /**
@@ -293,4 +294,11 @@ interface EntityManagerInterface extends ObjectManager
      * @return boolean True, if the EM has a filter collection.
      */
     public function hasFilters();
+
+    /**
+     * Returns shard manager for changing a shard
+     *
+     * @return ShardManager|null
+     */
+    public function getShardManager();
 }

@@ -23,6 +23,7 @@ use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\LockMode;
+use Doctrine\DBAL\Sharding\ShardManager;
 use Doctrine\ORM\Query\ResultSetMapping;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Doctrine\ORM\Query\FilterCollection;
@@ -138,18 +139,30 @@ use Throwable;
     private $cache;
 
     /**
+     * @var \Doctrine\DBAL\Sharding\ShardHolder
+     */
+    protected $shardManager;
+
+    /**
      * Creates a new EntityManager that operates on the given database connection
      * and uses the given Configuration and EventManager implementations.
      *
-     * @param \Doctrine\DBAL\Connection     $conn
-     * @param \Doctrine\ORM\Configuration   $config
-     * @param \Doctrine\Common\EventManager $eventManager
+     * @param \Doctrine\DBAL\Connection                $conn
+     * @param \Doctrine\ORM\Configuration              $config
+     * @param \Doctrine\Common\EventManager            $eventManager
+     * @param \Doctrine\DBAL\Sharding\ShardHolder|null $shardManager
      */
-    protected function __construct(Connection $conn, Configuration $config, EventManager $eventManager)
+    protected function __construct(
+        Connection $conn,
+        Configuration $config,
+        EventManager $eventManager,
+        ShardManager $shardManager = null
+    )
     {
         $this->conn              = $conn;
         $this->config            = $config;
         $this->eventManager      = $eventManager;
+        $this->shardManager      = $shardManager;
 
         $metadataFactoryClassName = $config->getClassMetadataFactoryName();
 
@@ -171,6 +184,14 @@ use Throwable;
             $cacheFactory   = $cacheConfig->getCacheFactory();
             $this->cache    = $cacheFactory->createCache($this);
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getShardManager()
+    {
+        return $this->shardManager;
     }
 
     /**
@@ -833,16 +854,20 @@ use Throwable;
     /**
      * Factory method to create EntityManager instances.
      *
-     * @param array|Connection $connection   An array with the connection parameters or an existing Connection instance.
-     * @param Configuration    $config       The Configuration instance to use.
-     * @param EventManager     $eventManager The EventManager instance to use.
+     * @param array|Connection  $connection An array with the connection parameters or an existing Connection instance.
+     * @param Configuration     $config The Configuration instance to use.
+     * @param EventManager      $eventManager The EventManager instance to use.
+     * @param ShardManager|null $shardManager
      *
      * @return EntityManager The created EntityManager.
      *
-     * @throws \InvalidArgumentException
      * @throws ORMException
      */
-    public static function create($connection, Configuration $config, EventManager $eventManager = null)
+    public static function create(
+        $connection,
+        Configuration $config,
+        EventManager $eventManager = null,
+        ShardManager $shardManager = null)
     {
         if ( ! $config->getMetadataDriverImpl()) {
             throw ORMException::missingMappingDriverImpl();
@@ -850,7 +875,7 @@ use Throwable;
 
         $connection = static::createConnection($connection, $config, $eventManager);
 
-        return new EntityManager($connection, $config, $connection->getEventManager());
+        return new EntityManager($connection, $config, $connection->getEventManager(), $shardManager);
     }
 
     /**
